@@ -398,6 +398,12 @@ int main(int argc, char *argv[])
 			perror("");
 			exit(EXIT_FAILURE);
 		}
+		ret = chmod(outfile, 0644);
+		if (ret == -1) {
+			fprintf(stderr, "Failed to chmod '%s'.\n", outfile);
+			perror("");
+			exit(EXIT_FAILURE);
+		}
 		copy(fd, fdo);
 		close(fdo);
 	}
