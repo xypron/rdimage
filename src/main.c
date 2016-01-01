@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 #include "image.h"
 
 #define BUFSIZE 0x100000
@@ -268,7 +269,6 @@ parse_header(int fd)
 	ret = read(fd, &header, sizeof(header));
 	if (ret == -1) {
 		fprintf(stderr, "Failed to read header.\n");
-		perror("");
 		exit(EXIT_FAILURE);
 	}
 	if (ret != sizeof(header)) {
@@ -279,6 +279,7 @@ parse_header(int fd)
 		fprintf(stderr, "Not an uImage file.\n");
 		exit(EXIT_FAILURE);
 	}
+	header.ih_name[IH_NMLEN - 1] = 0;
 	printf("Image name:       %s\n", header.ih_name);
 	time = swap32(header.ih_time);
 	strftime(buffer, sizeof(buffer), "%F %T UTC", gmtime(&time));
@@ -289,7 +290,29 @@ parse_header(int fd)
 	printf("Architecture:     %s\n", arch2char(header.ih_arch));
 	printf("Image type:       %s\n", type2char(header.ih_type));
 	printf("Compression type: %s\n", comp2char(header.ih_comp));
-	header.ih_name[IH_NMLEN - 1] = 0;
+	if (header.ih_comp == 0) {
+		ret = lseek(fd, 0x24, SEEK_CUR);
+		if (ret == -1) {
+			fprintf(stderr, "Failed to read header.\n");
+			exit(EXIT_FAILURE);
+		}
+		ret = read(fd, &buffer, 4);
+		if (ret != 4) {
+			fprintf(stderr, "Failed to read header.\n");
+			exit(EXIT_FAILURE);
+		}
+		if (buffer[0] == 0x18 && buffer[1] == 0x28 &&
+		    buffer[2] == 0x6F && buffer[3] == 0x01) {
+			printf("Payload type:     zImage\n");
+		} else {
+			printf("Payload type:     Image\n");
+		}
+		ret = lseek(fd, sizeof(image_header_t), SEEK_SET);
+		if (ret == -1) {
+			fprintf(stderr, "Failed to read header.\n");
+			exit(EXIT_FAILURE);
+		}
+	}
 }
 
 int main(int argc, char *argv[])
