@@ -392,7 +392,7 @@ int main(int argc, char *argv[])
 	parse_header(fd);
 
 	if (outfile != NULL) {
-		fdo = open(outfile, O_WRONLY | O_CREAT);
+		fdo = open(outfile, O_WRONLY | O_CREAT, 0777);
 		if (fdo == -1) {
 			fprintf(stderr, "Failed to open '%s'.\n", outfile);
 			perror("");
